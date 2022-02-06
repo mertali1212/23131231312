@@ -1,32 +1,83 @@
-const Discord = require('discord.js')
-const db = require('quick.db');
+const { MessageEmbed } = require("discord.js");
+const { Prefix } = require("../Configs/botConfig");
+const table = require("table");
 
+module.exports = {
+  name: "market",
+  aliases: [],
+  description: "Hesabım komutu ile ne kadar paranız var görüntüleyebilirsiniz.",
+  guildOnly: true,
+  async execute(message, args, bot) {
+    const memberData = await ecoUserData.findOne({
+      guildID: message.guild.id,
+      userID: message.author.id,
+    });
 
-exports.run = async (client, message, args) => {
-  
-  if (!args[0]) return message.reply(`Mevcut Markettekiler : `)
-  
-  if (args[0] === 'sa') {
-    let para = await db.get(`para_${message.author.id}`) 
-    let fiyatcık = 100 // istediğiniz fiyat
-    
-    if (para < fiyatcık) return message.reply('Yeterli Paran Yok!')
-    
-    db.set(`ìştebişiler_${message.author.id}`, "aktifdir")
-    db.add(`para_${message.author.id}`, -fiyatcık)
-    
-    return message.reply(`Ürünü Başarıyla Aldınız`)
-  }
+    try {
+      if (memberData.userAccount === false)
+        return message.reply({
+          content: `Geçersiz kullanım, markete bakmak için hesabın olmalı.`,
+        });
 
+      let marketler = [["#", "Kategori", "Kullanım", "Satıcı"]];
+      marketler = marketler.concat(
+        bot.commands
+          .filter((x) => x.category === "Market")
+          .map((value, index) => {
+            return [
+              `•`,
+              `${value.marketType}`,
+              `${Prefix}${value.name}`,
+              `${value.satıcı}`,
+            ];
+          })
+      );
 
-  
-}
-exports.conf = {
-  
-    aliases: [],
-    permLevel: 0
-}
+      let embed = new MessageEmbed().setColor("RANDOM").addField(
+        `Market Sıralaması`,
+        `\`\`\`diff
+${table.table(marketler, {
+  border: table.getBorderCharacters(`void`),
+  columnDefault: {
+    paddingLeft: 0,
+    paddingRight: 1,
+  },
+  columns: {
+    0: {
+      paddingLeft: 1,
+    },
+    1: {
+      paddingLeft: 1,
+    },
+    2: {
+      paddingLeft: 1,
+    },
+    3: {
+      paddingLeft: 1,
+      paddingRight: 1,
+    },
+  },
+  /**
+   * @typedef {function} drawHorizontalLine
+   * @param {number} index
+   * @param {number} size
+   * @return {boolean}
+   */
+  drawHorizontalLine: (index, size) => {
+    return index === 0 || index === 1 || index === size;
+  },
+})}\`\`\``
+      );
 
-exports.help = {
-    name: 'market'
-}
+      message.reply({ embeds: [embed] }).catch(() => {
+        return undefined;
+      });
+    } catch (err) {
+      message.reply({
+        content: `Geçersiz kullanım, markete bakmak için hesabın olmalı.`,
+      });
+
+      return;
+    }
+  },
+};
